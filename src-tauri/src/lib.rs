@@ -286,19 +286,12 @@ pub fn run() {
             apply_debug_log_level(desktop_settings.debug_logging_enabled);
             eprintln!("[STARTUP] storage ready in {:?}", t.elapsed());
 
-            let legacy_driver_base = desktop_settings.driver_store_dir.as_ref().map(std::path::PathBuf::from);
-            let plugin_dir = desktop_settings
-                .plugin_store_dir
-                .as_ref()
-                .map(std::path::PathBuf::from)
-                .or_else(|| legacy_driver_base.as_ref().map(|base| base.join("plugins")))
-                .unwrap_or_else(|| data_dir.join("plugins"));
-            let agent_dir = desktop_settings
-                .agent_store_dir
-                .as_ref()
-                .map(std::path::PathBuf::from)
-                .or_else(|| legacy_driver_base.as_ref().map(|base| base.join("agents")))
-                .or_else(|| data_dir::uses_custom_data_dir().then(|| data_dir.join("agents")));
+            let default_agent_dir = data_dir::uses_custom_data_dir().then(|| data_dir.join("agents"));
+            let (plugin_dir, agent_dir) = commands::app_settings::resolve_driver_store_dirs_from_settings(
+                &desktop_settings,
+                &data_dir,
+                default_agent_dir,
+            );
 
             let state = if let Some(agent_dir) = agent_dir {
                 Arc::new(AppState::new_with_plugin_and_agent_dir_and_app_version(
